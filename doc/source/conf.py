@@ -4,7 +4,7 @@ import sys, os
 # Import pymoo
 # =========================================================================================================
 
-sys.path.insert(0, os.path.abspath('../../../pymoo'))
+sys.path.insert(0, os.path.abspath('../../../pymoo-hotfix'))
 import pymoo
 from pymoo.configuration import Configuration
 
@@ -150,7 +150,6 @@ numpydoc_edit_link = False
 # =========================================================================================================
 
 html_theme = 'custom_theme'
-# html_theme = 'scipy_sphinx_theme'
 html_theme_path = ['_theme']
 html_static_path = ['_static']
 
