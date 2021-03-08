@@ -4,7 +4,7 @@ import sys, os
 # Import pymoo
 # =========================================================================================================
 
-sys.path.insert(0, os.path.abspath('../../../pymoo-hotfix'))
+sys.path.insert(0, os.path.abspath('../../../pymoo'))
 import pymoo
 from pymoo.configuration import Configuration
 
