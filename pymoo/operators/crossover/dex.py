@@ -67,10 +67,14 @@ class DEX(Crossover):
         self.jitter = jitter
         self.n_iter = n_iter
 
-    def do(self, problem, pop, parents, **kwargs):
+    def do(self, problem, pop, parents=None, **kwargs):
 
-        X = pop.get("X")[parents.T].copy()
-        assert len(X.shape) == 3, "Please provide a three-dimensional matrix n_parents x pop_size x n_vars."
+        # if a parents with array with mating indices is provided -> transform the input first
+        if parents is not None:
+            pop = [pop[mating] for mating in parents]
+
+        # get the actual values from each of the parents
+        X = np.swapaxes(np.array([[parent.get("X") for parent in mating] for mating in pop]), 0, 1).copy()
 
         n_parents, n_matings, n_var = X.shape
 

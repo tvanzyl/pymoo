@@ -1,7 +1,16 @@
 **/.DS_Store
 **/.vscode
-**/.mp4
-**/.npy
+**/*.mp4
+**/*.npy
+**/*.png
+**/*.gif
+**/*.cpp
+**/nohup.out
+
+
+**/dask-worker-space/**
+
+docs/source/misc/checkpoint
 
 
 # Byte-compiled / optimized / DLL files
@@ -10,15 +19,22 @@ __pycache__/
 *$py.class
 *.run
 *.so
+*.pkl
+
+ **/*.ipynb_checkpoints/
 
 
 # files which are in tests
 tests/!archive/*
+tests/scratch*
 tests/!archive_tests/*
 tests/!experimental/*
 
 pymoo/cache/
 pymoo/cache/*
+pymoo/data
+pymoo/docs/build
+pymoo/docs/nbconvert
 
 
 benchmark/runs/*

@@ -11,6 +11,18 @@ from pymoo.util.misc import find_duplicates, cdist
 # =========================================================================================================
 
 
+def default_ref_dirs(m):
+    if m == 1:
+        return np.array([[1.0]])
+    elif m == 2:
+        return UniformReferenceDirectionFactory(m, n_partitions=99).do()
+    elif m == 3:
+        return UniformReferenceDirectionFactory(m, n_partitions=12).do()
+    else:
+        raise Exception("No default reference directions for more than 3 objectives. Please provide them directly:"
+                        "https://pymoo.org/misc/reference_directions.html")
+
+
 class ReferenceDirectionFactory:
 
     def __init__(self, n_dim, scaling=None, lexsort=True, verbose=False, seed=None, **kwargs) -> None:
@@ -20,6 +32,9 @@ class ReferenceDirectionFactory:
         self.lexsort = lexsort
         self.verbose = verbose
         self.seed = seed
+
+    def __call__(self):
+        return self.do()
 
     def do(self):
 
@@ -140,6 +155,9 @@ class MultiLayerReferenceDirectionFactory:
         self.layers = []
         self.layers.extend(args)
 
+    def __call__(self):
+        return self.do()
+
     def add_layer(self, *args):
         self.layers.extend(args)
 
@@ -151,13 +169,13 @@ class MultiLayerReferenceDirectionFactory:
         is_duplicate = find_duplicates(ref_dirs)
         return ref_dirs[np.logical_not(is_duplicate)]
 
+
 # =========================================================================================================
 # Util
 # =========================================================================================================
 
 
 def sample_on_unit_simplex(n_points, n_dim, unit_simplex_mapping="kraemer"):
-
     if unit_simplex_mapping == "sum":
         rnd = map_onto_unit_simplex(np.random.random((n_points, n_dim)), "sum")
 

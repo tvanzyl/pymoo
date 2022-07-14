@@ -3,19 +3,20 @@ import numpy as np
 from pymoo.core.problem import Problem
 # Based on the C++ implementation by the Ma and Wang
 # http://www.escience.cn/people/yongwang1/index.html
+from pymoo.problems.many import get_ref_dirs
 from pymoo.util.remote import Remote
 
 
 class MW(Problem):
-    def __init__(self, n_var, n_obj, n_constr, **kwargs):
+    def __init__(self, n_var, n_obj, n_ieq_constr, **kwargs):
         if 'xl' not in kwargs:
             kwargs['xl'] = 0
         if 'xu' not in kwargs:
             kwargs['xu'] = 1
         super().__init__(n_var=n_var,
                          n_obj=n_obj,
-                         n_constr=n_constr,
-                         type_var=np.double, **kwargs)
+                         n_ieq_constr=n_ieq_constr,
+                         vtype=float, **kwargs)
 
     @staticmethod
     def LA1(A, B, C, D, theta):
@@ -151,7 +152,9 @@ class MW4(MW):
         out["F"] = f
         out["G"] = g0.reshape((-1, 1))
 
-    def _calc_pareto_front(self, ref_dirs):
+    def _calc_pareto_front(self, ref_dirs=None):
+        if ref_dirs is None:
+            ref_dirs = get_ref_dirs(self.n_obj)
         F = ref_dirs
         l = F[:, -1] - np.sum(F[:, :-1], axis=1)
         c = (1 + 0.4 * np.sin(2.5 * np.pi * l) ** 8) - np.sum(F, axis=1)
@@ -178,7 +181,7 @@ class MW5(MW):
         out["G"] = np.column_stack([g0, g1, g2])
 
     def _calc_pareto_front(self, **kwargs):
-        return Remote.get_instance().load("pf", "MW", "MW5.pf")
+        return Remote.get_instance().load("pymoo", "pf", "MW", "MW5.pf")
 
 
 class MW6(MW):
@@ -229,7 +232,7 @@ class MW7(MW):
         out["G"] = np.column_stack([g0, g1])
 
     def _calc_pareto_front(self, **kwargs):
-        return Remote.get_instance().load("pf", "MW", "MW7.pf")
+        return Remote.get_instance().load("pymoo", "pf", "MW", "MW7.pf")
 
 
 class MW8(MW):
@@ -251,7 +254,10 @@ class MW8(MW):
         out["F"] = f
         out["G"] = g0.reshape((-1, 1))
 
-    def _calc_pareto_front(self, ref_dirs):
+    def _calc_pareto_front(self, ref_dirs=None):
+        if ref_dirs is None:
+            ref_dirs = get_ref_dirs(self.n_obj)
+
         F = ref_dirs
         F = F / np.sqrt(np.sum(F ** 2, axis=1)).reshape((-1, 1))
         c = (1.25 - 0.5 * np.sin(6 * np.arcsin(F[:, -1])) ** 2) ** 2 - np.sum(F ** 2, axis=1)
@@ -274,7 +280,7 @@ class MW9(MW):
         out["G"] = g0.reshape((-1, 1))
 
     def _calc_pareto_front(self, **kwargs):
-        return Remote.get_instance().load("pf", "MW", "MW9.pf")
+        return Remote.get_instance().load("pymoo", "pf", "MW", "MW9.pf")
 
 
 class MW10(MW):
@@ -293,7 +299,7 @@ class MW10(MW):
         out["G"] = np.column_stack([g0, g1, g2])
 
     def _calc_pareto_front(self, **kwargs):
-        return Remote.get_instance().load("pf", "MW", "MW10.pf")
+        return Remote.get_instance().load("pymoo", "pf", "MW", "MW10.pf")
 
 
 class MW11(MW):
@@ -313,7 +319,7 @@ class MW11(MW):
         out["G"] = np.column_stack([g0, g1, g2, g3])
 
     def _calc_pareto_front(self, **kwargs):
-        return Remote.get_instance().load("pf", "MW", "MW11.pf")
+        return Remote.get_instance().load("pymoo", "pf", "MW", "MW11.pf")
 
 
 class MW12(MW):
@@ -367,7 +373,7 @@ class MW13(MW):
         out["G"] = np.column_stack([g0, g1])
 
     def _calc_pareto_front(self, **kwargs):
-        return Remote.get_instance().load("pf", "MW", "MW13.pf")
+        return Remote.get_instance().load("pymoo", "pf", "MW", "MW13.pf")
 
 
 class MW14(MW):
@@ -390,4 +396,5 @@ class MW14(MW):
         out["G"] = g0.reshape((-1, 1))
 
     def _calc_pareto_front(self, **kwargs):
-        return Remote.get_instance().load("pf", "MW", "MW14.pf")
+        if self.n_obj == 3:
+            return Remote.get_instance().load("pymoo", "pf", "MW", "MW14.pf")

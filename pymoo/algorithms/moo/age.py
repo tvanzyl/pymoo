@@ -1,6 +1,10 @@
-import numba
+try:
+    import numba
+    from numba import jit
+except:
+    raise Exception("Please install numba to use AGEMOEA: pip install numba")
+
 import numpy as np
-from numba import jit
 
 from pymoo.algorithms.base.genetic import GeneticAlgorithm
 from pymoo.algorithms.moo.nsga2 import binary_tournament
@@ -10,10 +14,9 @@ from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
 from pymoo.operators.sampling.rnd import FloatRandomSampling
 from pymoo.operators.selection.tournament import TournamentSelection
-from pymoo.util.display import MultiObjectiveDisplay
+from pymoo.util.display.multi import MultiObjectiveOutput
 from pymoo.util.misc import has_feasible
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
-from pymoo.util.termination.default import MultiObjectiveDefaultTermination
 
 
 # =========================================================================================================
@@ -26,11 +29,11 @@ class AGEMOEA(GeneticAlgorithm):
                  pop_size=100,
                  sampling=FloatRandomSampling(),
                  selection=TournamentSelection(func_comp=binary_tournament),
-                 crossover=SBX(eta=15, prob=0.9),
-                 mutation=PM(prob=None, eta=20),
+                 crossover=SBX(prob=0.9, eta=15),
+                 mutation=PM(eta=20),
                  eliminate_duplicates=True,
                  n_offsprings=None,
-                 display=MultiObjectiveDisplay(),
+                 output=MultiObjectiveOutput(),
                  **kwargs):
         """
         Adapted from:
@@ -57,11 +60,9 @@ class AGEMOEA(GeneticAlgorithm):
                          survival=AGEMOEASurvival(),
                          eliminate_duplicates=eliminate_duplicates,
                          n_offsprings=n_offsprings,
-                         display=display,
+                         output=output,
                          advance_after_initial_infill=True,
                          **kwargs)
-        self.default_termination = MultiObjectiveDefaultTermination()
-
         self.tournament_type = 'comp_by_rank_and_crowding'
 
     def _set_optimum(self, **kwargs):
@@ -92,10 +93,10 @@ class AGEMOEASurvival(Survival):
         fronts = self.nds.do(F, n_stop_if_ranked=N)
 
         # get max int value
-        max_val = np.iinfo(np.int).max
+        max_val = np.iinfo(int).max
 
         # initialize population ranks with max int value
-        front_no = np.full(F.shape[0], max_val, dtype=np.int)
+        front_no = np.full(F.shape[0], max_val, dtype=int)
 
         # assign the rank to each individual
         for i, fr in enumerate(fronts):
@@ -295,5 +296,6 @@ def normalize(front, extreme):
     front = front / normalization
 
     return front, normalization
+
 
 parse_doc_string(AGEMOEA.__init__)

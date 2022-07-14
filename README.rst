@@ -1,6 +1,7 @@
 
-.. |python| image:: https://img.shields.io/badge/python-3.9-blue.svg
-   :alt: python 3.9
+
+.. |python| image:: https://img.shields.io/badge/python-3.10-blue.svg
+   :alt: python 3.10
 
 .. |license| image:: https://img.shields.io/badge/license-apache-orange.svg
    :alt: license apache
@@ -86,7 +87,7 @@ However, for instance, executing NSGA2:
 
 
     from pymoo.algorithms.moo.nsga2 import NSGA2
-    from pymoo.factory import get_problem
+    from pymoo.problems import get_problem
     from pymoo.optimize import minimize
     from pymoo.visualization.scatter import Scatter
 
@@ -143,7 +144,7 @@ Contact
 
 Feel free to contact me if you have any questions:
 
-| `Julian Blank <http://julianblank.com>`_  (blankjul [at] egr.msu.edu)
+| `Julian Blank <http://julianblank.com>`_  (blankjul [at] msu.edu)
 | Michigan State University
 | Computational Optimization and Innovation Laboratory (COIN)
 | East Lansing, MI 48824, USA

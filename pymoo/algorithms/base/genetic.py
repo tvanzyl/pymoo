@@ -73,12 +73,11 @@ class GeneticAlgorithm(Algorithm):
 
     def _initialize_infill(self):
         pop = self.initialization.do(self.problem, self.pop_size, algorithm=self)
-        pop.set("n_gen", self.n_gen)
         return pop
 
     def _initialize_advance(self, infills=None, **kwargs):
         if self.advance_after_initial_infill:
-            self.pop = self.survival.do(self.problem, infills, n_survive=len(infills))
+            self.pop = self.survival.do(self.problem, infills, n_survive=len(infills), algorithm=self, **kwargs)
 
     def _infill(self):
 
@@ -99,9 +98,12 @@ class GeneticAlgorithm(Algorithm):
 
     def _advance(self, infills=None, **kwargs):
 
+        # the current population
+        pop = self.pop
+
         # merge the offsprings with the current population
         if infills is not None:
-            self.pop = Population.merge(self.pop, infills)
+            pop = Population.merge(self.pop, infills)
 
         # execute the survival to find the fittest solutions
-        self.pop = self.survival.do(self.problem, self.pop, n_survive=self.pop_size, algorithm=self)
+        self.pop = self.survival.do(self.problem, pop, n_survive=self.pop_size, algorithm=self, **kwargs)

@@ -3,6 +3,7 @@ import numpy as np
 from pymoo.core.duplicate import NoDuplicateElimination
 from pymoo.core.population import Population
 from pymoo.core.repair import NoRepair
+from pymoo.util.misc import at_least_2d_array
 
 
 class Initialization:
@@ -14,7 +15,7 @@ class Initialization:
 
         super().__init__()
         self.sampling = sampling
-        self.eliminate_duplicates = eliminate_duplicates if eliminate_duplicates is not None else NoDuplicateElimination()
+        self.eliminate_duplicates = eliminate_duplicates if eliminate_duplicates else NoDuplicateElimination()
         self.repair = repair if repair is not None else NoRepair()
 
     def do(self, problem, n_samples, **kwargs):
@@ -25,14 +26,15 @@ class Initialization:
 
         else:
             if isinstance(self.sampling, np.ndarray):
-                pop = Population.new(X=self.sampling)
+                sampling = at_least_2d_array(self.sampling)
+                pop = Population.new(X=sampling)
             else:
-                pop = self.sampling.do(problem, n_samples, **kwargs)
+                pop = self.sampling(problem, n_samples, **kwargs)
 
         # repair all solutions that are not already evaluated
-        not_eval_yet = [k for k in range(len(pop)) if pop[k].F is None]
+        not_eval_yet = [k for k in range(len(pop)) if len(pop[k].evaluated) == 0]
         if len(not_eval_yet) > 0:
-            pop[not_eval_yet] = self.repair.do(problem, pop[not_eval_yet], **kwargs)
+            pop[not_eval_yet] = self.repair(problem, pop[not_eval_yet], **kwargs)
 
         # filter duplicate in the population
         pop = self.eliminate_duplicates.do(pop)

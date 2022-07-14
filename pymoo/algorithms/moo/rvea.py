@@ -1,16 +1,16 @@
 import numpy as np
 
 from pymoo.algorithms.base.genetic import GeneticAlgorithm
-from pymoo.docs import parse_doc_string
 from pymoo.core.survival import Survival
-from pymoo.operators.crossover.sbx import SimulatedBinaryCrossover
-from pymoo.operators.mutation.pm import PolynomialMutation
+from pymoo.docs import parse_doc_string
+from pymoo.operators.crossover.sbx import SBX
+from pymoo.operators.mutation.pm import PM
 from pymoo.operators.sampling.rnd import FloatRandomSampling
 from pymoo.operators.selection.rnd import RandomSelection
-from pymoo.util.display import MultiObjectiveDisplay
+from pymoo.termination.max_eval import MaximumFunctionCallTermination
+from pymoo.termination.max_gen import MaximumGenerationTermination
+from pymoo.util.display.multi import MultiObjectiveOutput
 from pymoo.util.misc import has_feasible, vectorized_cdist
-from pymoo.util.termination.max_eval import MaximumFunctionCallTermination
-from pymoo.util.termination.max_gen import MaximumGenerationTermination
 
 
 class RVEA(GeneticAlgorithm):
@@ -22,11 +22,11 @@ class RVEA(GeneticAlgorithm):
                  pop_size=None,
                  sampling=FloatRandomSampling(),
                  selection=RandomSelection(),
-                 crossover=SimulatedBinaryCrossover(eta=30, prob=1.0),
-                 mutation=PolynomialMutation(eta=20, prob=None),
+                 crossover=SBX(eta=30, prob=1.0),
+                 mutation=PM(eta=20),
                  eliminate_duplicates=True,
                  n_offsprings=None,
-                 display=MultiObjectiveDisplay(),
+                 output=MultiObjectiveOutput(),
                  **kwargs):
         """
 
@@ -70,7 +70,7 @@ class RVEA(GeneticAlgorithm):
                          survival=survival,
                          eliminate_duplicates=eliminate_duplicates,
                          n_offsprings=n_offsprings,
-                         display=display,
+                         output=output,
                          **kwargs)
 
     def _setup(self, problem, **kwargs):
@@ -211,4 +211,3 @@ class APDSurvival(Survival):
 
 
 parse_doc_string(RVEA.__init__)
-

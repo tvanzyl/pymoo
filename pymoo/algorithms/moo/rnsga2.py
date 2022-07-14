@@ -5,10 +5,11 @@ from pymoo.docs import parse_doc_string
 from pymoo.core.survival import Survival
 from pymoo.operators.selection.rnd import RandomSelection
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
+from pymoo.util.normalization import get_extreme_points_c
+
 # =========================================================================================================
 # Implementation
 # =========================================================================================================
-from pymoo.util.normalization import get_extreme_points_c
 
 
 class RNSGA2(NSGA2):
@@ -67,7 +68,7 @@ class RankAndModifiedCrowdingSurvival(Survival):
         self.ideal_point = np.full(self.n_obj, np.inf)
         self.nadir_point = np.full(self.n_obj, -np.inf)
 
-    def _do(self, problem, pop, n_survive, **kwargs):
+    def _do(self, problem, pop, n_survive=None, **kwargs):
 
         # get the objective space values and objects
         F = pop.get("F")
