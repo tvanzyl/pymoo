@@ -1,6 +1,6 @@
-import autograd.numpy as anp
+import pymoo.gradient.toolbox as anp
 
-from pymoo.problems.many.dtlz import DTLZ1, DTLZ2, DTLZ3, DTLZ4
+from pymoo.problems.many.dtlz import DTLZ1, DTLZ3
 
 
 def constraint_dc1(X, a=5, b=0.95):
@@ -25,7 +25,7 @@ def constraints_dc3(X, gx, a=5, b=0.5):
 class DC1DTLZ1(DTLZ1):
     def __init__(self, n_var=12, n_obj=3, **kwargs):
         super().__init__(n_var, n_obj, **kwargs)
-        self.n_constr = 1
+        self.n_ieq_constr = 1
 
     def _evaluate(self, x, out, *args, **kwargs):
         super()._evaluate(x, out, *args, **kwargs)
@@ -35,7 +35,7 @@ class DC1DTLZ1(DTLZ1):
 class DC1DTLZ3(DTLZ3):
     def __init__(self, n_var=12, n_obj=3, **kwargs):
         super().__init__(n_var, n_obj, **kwargs)
-        self.n_constr = 1
+        self.n_ieq_constr = 1
 
     def _evaluate(self, x, out, *args, **kwargs):
         super()._evaluate(x, out, *args, **kwargs)
@@ -45,7 +45,7 @@ class DC1DTLZ3(DTLZ3):
 class DC2DTLZ1(DTLZ1):
     def __init__(self, n_var=12, n_obj=3, **kwargs):
         super().__init__(n_var, n_obj, **kwargs)
-        self.n_constr = 2
+        self.n_ieq_constr = 2
 
     def _evaluate(self, x, out, *args, **kwargs):
         X_, X_M = x[:, :self.n_obj - 1], x[:, self.n_obj - 1:]
@@ -57,7 +57,7 @@ class DC2DTLZ1(DTLZ1):
 class DC2DTLZ3(DTLZ3):
     def __init__(self, n_var=12, n_obj=3, **kwargs):
         super().__init__(n_var, n_obj, **kwargs)
-        self.n_constr = 2
+        self.n_ieq_constr = 2
 
     def _evaluate(self, x, out, *args, **kwargs):
         X_, X_M = x[:, :self.n_obj - 1], x[:, self.n_obj - 1:]
@@ -68,8 +68,7 @@ class DC2DTLZ3(DTLZ3):
 
 class DC3DTLZ1(DTLZ1):
     def __init__(self, n_var=12, n_obj=3, **kwargs):
-        super().__init__(n_var, n_obj, **kwargs)
-        self.n_constr = n_obj + 1
+        super().__init__(n_var, n_obj, n_ieq_constr=n_obj, **kwargs)
 
     def _evaluate(self, x, out, *args, **kwargs):
         X_, X_M = x[:, :self.n_obj - 1], x[:, self.n_obj - 1:]
@@ -80,8 +79,7 @@ class DC3DTLZ1(DTLZ1):
 
 class DC3DTLZ3(DTLZ3):
     def __init__(self, n_var=12, n_obj=3, **kwargs):
-        super().__init__(n_var, n_obj, **kwargs)
-        self.n_constr = n_obj + 1
+        super().__init__(n_var, n_obj, n_ieq_constr=n_obj, **kwargs)
 
     def _evaluate(self, x, out, *args, **kwargs):
         X_, X_M = x[:, :self.n_obj - 1], x[:, self.n_obj - 1:]

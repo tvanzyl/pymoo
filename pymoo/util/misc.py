@@ -3,11 +3,11 @@ from datetime import datetime
 from itertools import combinations
 
 import numpy as np
-import scipy
-import scipy.spatial
+
 
 from pymoo.core.population import Population
 from pymoo.core.sampling import Sampling
+
 
 
 def parameter_less(F, CV, fmax=None, inplace=False):
@@ -58,11 +58,12 @@ def parameter_less_constraints(F, CV, F_max=None):
     return F
 
 
-def random_permuations(n, l):
-    perms = []
+def random_permuations(n, l, concat=True):
+    P = []
     for i in range(n):
-        perms.append(np.random.permutation(l))
-    P = np.concatenate(perms)
+        P.append(np.random.permutation(l))
+    if concat:
+        P = np.concatenate(P)
     return P
 
 
@@ -153,7 +154,8 @@ def norm_tchebychev_dist(problem, A, B, **kwargs):
 
 
 def cdist(A, B, **kwargs):
-    return scipy.spatial.distance.cdist(A.astype(float), B.astype(float), **kwargs)
+    from scipy.spatial import distance
+    return distance.cdist(A.astype(float), B.astype(float), **kwargs)
 
 
 def vectorized_cdist(A, B, func_dist=func_euclidean_distance, fill_diag_with_inf=False, **kwargs) -> object:
@@ -182,11 +184,11 @@ def vectorized_cdist(A, B, func_dist=func_euclidean_distance, fill_diag_with_inf
 
 
 def covert_to_type(problem, X):
-    if problem.type_var == np.double:
+    if problem.vtype == float:
         return X.astype(np.double)
-    elif problem.type_var == int:
+    elif problem.vtype == int:
         return np.round(X).astype(int)
-    elif problem.type_var == np.bool:
+    elif problem.vtype == bool:
         return X < (problem.xu - problem.xl) / 2
 
 
@@ -203,6 +205,13 @@ def find_duplicates(X, epsilon=1e-16):
     return is_duplicate
 
 
+def at_least_2d(*args, **kwargs):
+    ret = tuple([at_least_2d_array(arg, **kwargs) for arg in args])
+    if len(ret) == 1:
+        ret = ret[0]
+    return ret
+
+
 def at_least_2d_array(x, extend_as="row", return_if_reshaped=False):
     if x is None:
         return x
@@ -212,10 +221,12 @@ def at_least_2d_array(x, extend_as="row", return_if_reshaped=False):
     has_been_reshaped = False
 
     if x.ndim == 1:
-        if extend_as == "row":
+        if extend_as.startswith("r"):
             x = x[None, :]
-        elif extend_as == "column":
+        elif extend_as.startswith("c"):
             x = x[:, None]
+        else:
+            raise Exception("The option `extend_as` should be either `row` or `column`.")
 
         has_been_reshaped = True
 
@@ -356,7 +367,7 @@ def termination_from_tuple(termination):
 
     # get the termination if provided as a tuple - create an object
     if termination is not None and not isinstance(termination, Termination):
-        from pymoo.factory import get_termination
+        from pymoo.termination import get_termination
         if isinstance(termination, str):
             termination = get_termination(termination)
         else:
@@ -402,3 +413,43 @@ def replace_nan_by(x, val, inplace=False):
             x = x.copy()
         x[is_nan] = val
     return x
+
+
+def set_defaults(kwargs, defaults, overwrite=False, func_get=lambda x: x):
+    for k, v in defaults.items():
+        if overwrite or k not in kwargs:
+            kwargs[k] = func_get(v)
+
+
+def filter_params(params, prefix, delete_prefix=True):
+    ret = {}
+    for k, v in params.items():
+        if k.startswith(prefix):
+            if delete_prefix:
+                k = k[len(prefix):]
+            ret[k] = v
+    return ret
+
+
+def where_is_what(x):
+    H = {}
+    for k, e in enumerate(x):
+        if e not in H:
+            H[e] = []
+        H[e].append(k)
+    return H
+
+
+def crossover_mask(X, M):
+    # convert input to output by flatting along the first axis
+    _X = np.copy(X)
+    _X[0][M] = X[1][M]
+    _X[1][M] = X[0][M]
+    return _X
+
+
+def row_at_least_once_true(M):
+    _, d = M.shape
+    for k in np.where(~np.any(M, axis=1))[0]:
+        M[k, np.random.randint(d)] = True
+    return M

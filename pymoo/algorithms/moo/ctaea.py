@@ -1,18 +1,17 @@
-
 import math
 
 import numpy as np
 from scipy.spatial.distance import cdist, pdist, squareform
 
 from pymoo.algorithms.base.genetic import GeneticAlgorithm
+from pymoo.core.population import Population
 from pymoo.decomposition.asf import ASF
 from pymoo.docs import parse_doc_string
-from pymoo.core.population import Population
-from pymoo.operators.crossover.sbx import SimulatedBinaryCrossover
-from pymoo.operators.mutation.pm import PolynomialMutation
+from pymoo.operators.crossover.sbx import SBX
+from pymoo.operators.mutation.pm import PM
 from pymoo.operators.sampling.rnd import FloatRandomSampling
 from pymoo.operators.selection.tournament import TournamentSelection
-from pymoo.util.display import MultiObjectiveDisplay
+from pymoo.util.display.multi import MultiObjectiveOutput
 from pymoo.util.dominator import Dominator
 from pymoo.util.function_loader import load_function
 from pymoo.util.misc import has_feasible, random_permuations
@@ -52,7 +51,7 @@ def comp_by_cv_dom_then_random(pop, P, **kwargs):
 class RestrictedMating(TournamentSelection):
     """Restricted mating approach to balance convergence and diversity archives"""
 
-    def _do(self, Hm, n_select, n_parents=2, **kwargs):
+    def _do(self, problem, Hm, n_select, n_parents, **kwargs):
         n_pop = len(Hm) // 2
 
         _, rank = NonDominatedSorting().do(Hm.get('F'), return_rank=True)
@@ -73,7 +72,7 @@ class RestrictedMating(TournamentSelection):
         P[1::n_parents, :][pf >= Pc] += n_pop
 
         # compare using tournament function
-        S = self.f_comp(Hm, P, **kwargs)
+        S = self.func_comp(Hm, P, **kwargs)
 
         return np.reshape(S, (n_select, n_parents))
 
@@ -114,7 +113,7 @@ class CADASurvival:
         """Update the Convergence archive (CA)"""
         CV = pop.get("CV").flatten()
 
-        Sc = pop[CV == 0]  # Feasible population
+        Sc = pop[CV == 0]  # ConstraintsAsObjective population
         if len(Sc) == n_survive:  # Exactly n_survive feasible individuals
             F = Sc.get("F")
             fronts, rank = NonDominatedSorting().do(F, return_rank=True)
@@ -218,18 +217,16 @@ class CADASurvival:
         return Hd[S]
 
 
-
-
 class CTAEA(GeneticAlgorithm):
 
     def __init__(self,
                  ref_dirs,
                  sampling=FloatRandomSampling(),
                  selection=RestrictedMating(func_comp=comp_by_cv_dom_then_random),
-                 crossover=SimulatedBinaryCrossover(n_offsprings=1, eta=30, prob=1.0),
-                 mutation=PolynomialMutation(eta=20, prob=None),
+                 crossover=SBX(n_offsprings=1, eta=30, prob=1.0),
+                 mutation=PM(prob_var=None, eta=20),
                  eliminate_duplicates=True,
-                 display=MultiObjectiveDisplay(),
+                 output=MultiObjectiveOutput(),
                  **kwargs):
         """
         CTAEA
@@ -264,7 +261,7 @@ class CTAEA(GeneticAlgorithm):
                          survival=survival,
                          eliminate_duplicates=eliminate_duplicates,
                          n_offsprings=pop_size,
-                         display=display,
+                         output=output,
                          **kwargs)
 
     def _setup(self, problem, **kwargs):

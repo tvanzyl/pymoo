@@ -12,7 +12,7 @@ class TournamentSelection(Selection):
       greedy the genetic algorithm will be.
     """
 
-    def __init__(self, func_comp=None, pressure=2):
+    def __init__(self, func_comp=None, pressure=2, **kwargs):
         """
 
         Parameters
@@ -25,14 +25,16 @@ class TournamentSelection(Selection):
             The selection pressure to bie applied. Default it is a binary tournament.
         """
 
+        super().__init__(**kwargs)
+
         # selection pressure to be applied
         self.pressure = pressure
 
-        self.f_comp = func_comp
-        if self.f_comp is None:
+        self.func_comp = func_comp
+        if self.func_comp is None:
             raise Exception("Please provide the comparing function for the tournament selection!")
 
-    def _do(self, pop, n_select, n_parents=1, **kwargs):
+    def _do(self, _, pop, n_select, n_parents=1, **kwargs):
         # number of random individuals needed
         n_random = n_select * n_parents * self.pressure
 
@@ -44,7 +46,7 @@ class TournamentSelection(Selection):
         P = np.reshape(P, (n_select * n_parents, self.pressure))
 
         # compare using tournament function
-        S = self.f_comp(pop, P, **kwargs)
+        S = self.func_comp(pop, P, **kwargs)
 
         return np.reshape(S, (n_select, n_parents))
 

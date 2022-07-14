@@ -10,8 +10,8 @@ clean-ext:
 compile:
 	python setup.py build_ext --inplace
 
-compile-with-cython:
-	python setup.py build_ext --inplace --cythonize
+compile-without-cython:
+	python setup.py build_ext --inplace --no-cython
 
 dist:
 	python setup.py sdist
@@ -19,5 +19,3 @@ dist:
 install:
 	python setup.py install
 
-test:
-	gitlab-runner exec shell default

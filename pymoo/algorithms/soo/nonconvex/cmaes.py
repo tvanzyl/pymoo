@@ -2,14 +2,15 @@ import cma
 import numpy as np
 
 from pymoo.algorithms.base.local import LocalSearch
-from pymoo.docs import parse_doc_string
 from pymoo.core.population import Population
-from pymoo.util.display import Display
+from pymoo.core.termination import NoTermination
+from pymoo.docs import parse_doc_string
+from pymoo.termination.max_eval import MaximumFunctionCallTermination
+from pymoo.termination.max_gen import MaximumGenerationTermination
+from pymoo.util.display.column import Column
+from pymoo.util.display.single import SingleObjectiveOutput
 from pymoo.util.normalization import ZeroToOneNormalization, NoNormalization
 from pymoo.util.optimum import filter_optimum
-from pymoo.util.termination.max_eval import MaximumFunctionCallTermination
-from pymoo.util.termination.max_gen import MaximumGenerationTermination
-from pymoo.util.termination.no_termination import NoTermination
 from pymoo.vendor.vendor_cmaes import my_fmin
 
 
@@ -18,31 +19,52 @@ from pymoo.vendor.vendor_cmaes import my_fmin
 # =========================================================================================================
 
 
-class CMAESDisplay(Display):
+class CMAESOutput(SingleObjectiveOutput):
 
-    def _do(self, problem, evaluator, algorithm):
-        super()._do(problem, evaluator, algorithm)
+    def __init__(self):
+        super().__init__()
+
+        self.sigma = Column("sigma")
+        self.min_std = Column("min_std", width=8)
+        self.max_std = Column("max_std", width=8)
+        self.axis = Column("axis", width=8)
+
+        self.run = Column("run", width=4)
+        self.fpop = Column("fpop", width=8)
+        self.n_pop = Column("n_pop", width=5)
+
+    def initialize(self, algorithm):
+        super().initialize(algorithm)
+
+        if algorithm.restarts > 0:
+            self.columns += [self.run, self.fpop, self.n_pop]
+
+        self.columns += [self.sigma, self.min_std, self.max_std, self.axis]
+
+    def update(self, algorithm):
+        super().update(algorithm)
+
+        if not algorithm.es.gi_frame:
+            return
 
         fmin = algorithm.es.gi_frame.f_locals
         cma = fmin["es"]
 
-        self.output.append("fopt", algorithm.opt[0].F[0])
-
-        if fmin["restarts"] > 0:
-            self.output.append("run", int(fmin["irun"] - fmin["runs_with_small"]) + 1, width=4)
-            self.output.append("fpop", algorithm.pop.get("F").min())
-            self.output.append("n_pop", int(cma.opts['popsize']), width=5)
-
-        self.output.append("sigma", cma.sigma)
+        self.sigma.set(cma.sigma)
 
         val = cma.sigma_vec * cma.dC ** 0.5
-        self.output.append("min std", (cma.sigma * min(val)), width=8)
-        self.output.append("max std", (cma.sigma * max(val)), width=8)
+        self.min_std.set((cma.sigma * min(val)))
+        self.max_std.set((cma.sigma * max(val)))
+
+        if algorithm.restarts > 0:
+            self.run.set(int(fmin["irun"] - fmin["runs_with_small"]) + 1)
+            self.fpop.set(algorithm.pop.get("F").min())
+            self.n_pop.set(int(cma.opts['popsize']))
 
         axis = (cma.D.max() / cma.D.min()
                 if not cma.opts['CMA_diagonal'] or cma.countiter > cma.opts['CMA_diagonal']
                 else max(cma.sigma_vec * 1) / min(cma.sigma_vec * 1))
-        self.output.append("axis", axis, width=8)
+        self.axis.set(axis)
 
 
 class CMAES(LocalSearch):
@@ -65,7 +87,7 @@ class CMAES(LocalSearch):
                  bipop=False,
                  cmaes_verbose=-9,
                  verb_log=0,
-                 display=CMAESDisplay(),
+                 output=CMAESOutput(),
                  **kwargs
                  ):
         """
@@ -121,7 +143,7 @@ class CMAES(LocalSearch):
 
         noise_kappa_exponent : int
               Instead of applying reevaluations, the "number of evaluations"
-              is (ab)used as scaling factor kappa (experimental).
+              is (ab)used as init_simplex_scale factor kappa (experimental).
 
         bipop : bool
               If `True`, run as BIPOP-CMA-ES; BIPOP is a special restart
@@ -333,7 +355,9 @@ class CMAES(LocalSearch):
               for a list of available options.
 
         """
-        super().__init__(x0=x0, display=display, **kwargs)
+        super().__init__(x0=x0, output=output, **kwargs)
+
+        self.termination = NoTermination()
 
         self.es = None
         self.cma = None
@@ -360,13 +384,11 @@ class CMAES(LocalSearch):
             **kwargs
         )
 
-        self.default_termination = NoTermination()
         self.send_array_to_yield = True
         self.parallelize = parallelize
         self.al = None
 
-    def _setup(self, problem, seed=None, **kwargs):
-        self.n_gen = 0
+    def _setup(self, problem, **kwargs):
 
         xl, xu = problem.bounds()
         if self.normalize:
@@ -375,7 +397,7 @@ class CMAES(LocalSearch):
             self.norm = NoNormalization()
             self.options['bounds'] = [xl, xu]
 
-        self.options['seed'] = seed
+        self.options['seed'] = self.seed
 
         if isinstance(self.termination, MaximumGenerationTermination):
             self.options['maxiter'] = self.termination.n_max_gen
@@ -387,7 +409,7 @@ class CMAES(LocalSearch):
 
         kwargs = dict(
             options=self.options,
-            parallelize=self.parallelize,
+            parallel_objective=self.parallelize,
             restarts=self.restarts,
             restart_from_best=self.restart_from_best,
             incpopsize=self.incpopsize,
@@ -403,7 +425,8 @@ class CMAES(LocalSearch):
         # do this to allow the printout in the first generation
         self.next_X = next(self.es)
 
-    def _local_infill(self):
+    def _infill(self):
+
         X = np.array(self.next_X)
         self.send_array_to_yield = X.ndim > 1
         X = np.atleast_2d(X)
@@ -413,7 +436,7 @@ class CMAES(LocalSearch):
 
         return self.pop
 
-    def _local_advance(self, infills=None, **kwargs):
+    def _advance(self, infills=None, **kwargs):
 
         if infills is None:
             self.termination.force_termination = True
@@ -422,10 +445,10 @@ class CMAES(LocalSearch):
 
             # set infeasible individual's objective values to np.nan - then CMAES can handle it
             for ind in infills:
-                if not ind.feasible[0]:
-                    ind.F[0] = np.nan
+                if not ind.feas:
+                    ind.F[:] = np.nan
 
-            F = infills.get("F")[:, 0].tolist()
+            F = infills.get("f").tolist()
             if not self.send_array_to_yield:
                 F = F[0]
 
@@ -443,7 +466,7 @@ class CMAES(LocalSearch):
 
     def __getstate__(self):
         state = self.__dict__.copy()
-        del state["es"]
+        state.pop("es", None)
         return state
 
     def __setstate__(self, state):
@@ -455,7 +478,7 @@ class SimpleCMAES(LocalSearch):
 
     def __init__(self, sigma=0.1, opts=None, normalize=True, **kwargs):
         super().__init__(**kwargs)
-        self.default_termination = NoTermination()
+        self.termination = NoTermination()
         self.es = None
         self.sigma = sigma
         self.normalize = normalize
@@ -486,11 +509,11 @@ class SimpleCMAES(LocalSearch):
         x = self.norm.forward(self.x0.X)
         self.es = cma.CMAEvolutionStrategy(x, self.sigma, inopts=self.opts)
 
-    def _local_infill(self):
+    def _infill(self):
         X = self.norm.backward(np.array(self.es.ask()))
         return Population.new("X", X)
 
-    def _local_advance(self, infills=None, **kwargs):
+    def _advance(self, infills=None, **kwargs):
         X, F = infills.get("X", "F")
         X = self.norm.forward(X)
 

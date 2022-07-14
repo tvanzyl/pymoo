@@ -1,9 +1,13 @@
-import math
+from pymoo.docs import parse_doc_string
 
-import numba
+try:
+    import numba
+    from numba import jit
+except:
+    raise Exception("Please install numba to use AGEMOEA2: pip install numba")
+
 import numpy as np
-import scipy as sp
-from numba import jit, prange
+
 
 from pymoo.algorithms.base.genetic import GeneticAlgorithm
 from pymoo.algorithms.moo.age import AGEMOEASurvival
@@ -12,8 +16,7 @@ from pymoo.operators.crossover.sbx import SBX
 from pymoo.operators.mutation.pm import PM
 from pymoo.operators.sampling.rnd import FloatRandomSampling
 from pymoo.operators.selection.tournament import TournamentSelection
-from pymoo.util.display import MultiObjectiveDisplay
-from pymoo.util.termination.default import MultiObjectiveDefaultTermination
+from pymoo.util.display.multi import MultiObjectiveOutput
 
 
 class AGEMOEA2(GeneticAlgorithm):
@@ -22,11 +25,11 @@ class AGEMOEA2(GeneticAlgorithm):
                  pop_size=100,
                  sampling=FloatRandomSampling(),
                  selection=TournamentSelection(func_comp=binary_tournament),
-                 crossover=SBX(eta=15, prob=0.9),
-                 mutation=PM(prob=None, eta=20),
+                 crossover=SBX(prob=0.9, eta=15),
+                 mutation=PM(eta=20),
                  eliminate_duplicates=True,
                  n_offsprings=None,
-                 display=MultiObjectiveDisplay(),
+                 output=MultiObjectiveOutput(),
                  **kwargs):
         """
         Adapted from:
@@ -55,11 +58,9 @@ class AGEMOEA2(GeneticAlgorithm):
                          survival=AGEMOEA2Survival(),
                          eliminate_duplicates=eliminate_duplicates,
                          n_offsprings=n_offsprings,
-                         display=display,
+                         output=output,
                          advance_after_initial_infill=True,
                          **kwargs)
-
-        self.default_termination = MultiObjectiveDefaultTermination()
         self.tournament_type = 'comp_by_rank_and_crowding'
 
 
@@ -154,3 +155,4 @@ class AGEMOEA2Survival(AGEMOEASurvival):
 
         return distances + distances.T
 
+parse_doc_string(AGEMOEA2.__init__)

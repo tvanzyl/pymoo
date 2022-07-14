@@ -1,12 +1,17 @@
 import pytest
 
-from pymoo.factory import get_reference_directions
+from pymoo.util.ref_dirs import get_reference_directions
 from pymoo.util.reference_direction import sample_on_unit_simplex
 
 
 def test_das_dennis():
     ref_dirs = get_reference_directions("das-dennis", 3, n_partitions=12)
     assert len(ref_dirs) == 91
+
+
+def test_energy():
+    ref_dirs = get_reference_directions("energy", 3, n_points=100, verify_gradient=True)
+    assert len(ref_dirs) == 100
 
 
 def test_das_dennis_achievable_points():

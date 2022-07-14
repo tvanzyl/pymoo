@@ -4,7 +4,8 @@ from pymoo.algorithms.base.local import LocalSearch
 from pymoo.algorithms.moo.nsga2 import RankAndCrowdingSurvival
 from pymoo.core.individual import Individual
 from pymoo.core.population import Population
-from pymoo.util.display import SingleObjectiveDisplay
+from pymoo.util.display.single import SingleObjectiveOutput
+
 from pymoo.util.nds.non_dominated_sorting import NonDominatedSorting
 from pymoo.util.normalization import normalize, denormalize
 
@@ -33,9 +34,9 @@ class DIRECT(LocalSearch):
                  n_max_candidates=10,
                  n_max_archive=400,
                  archive_reduct=0.66,
-                 display=SingleObjectiveDisplay(),
+                 output=SingleObjectiveOutput(),
                  **kwargs):
-        super().__init__(display=display, **kwargs)
+        super().__init__(output=output, **kwargs)
         self.eps = eps
         self.penalty = penalty
         self.n_max_candidates = n_max_candidates
@@ -91,11 +92,6 @@ class DIRECT(LocalSearch):
 
         I = NonDominatedSorting().do(obj, only_non_dominated_front=True)
         candidates, F, xl, xu, val = pop[I], F[I], xl[I], xu[I], val[I]
-
-        # import matplotlib.pyplot as plt
-        # plt.scatter(obj[:, 0], obj[:, 1])
-        # plt.scatter(obj[I, 0], obj[I, 1], color="red")
-        # plt.show()
 
         # if all candidates are expanded in each iteration this can cause issues - here use crowding distance to decide
         if len(candidates) == 1:

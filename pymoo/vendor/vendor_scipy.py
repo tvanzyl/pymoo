@@ -1,4 +1,7 @@
-from pymoo.util.termination.max_eval import MaximumFunctionCallTermination
+
+from pymoo.core.termination import NoTermination
+from pymoo.termination.max_eval import MaximumFunctionCallTermination
+from pymoo.util.display.single import SingleObjectiveOutput
 
 try:
     from scipy.optimize import minimize as scipy_minimize, NonlinearConstraint, LinearConstraint
@@ -10,11 +13,11 @@ import warnings
 import numpy as np
 
 from pymoo.algorithms.base.local import LocalSearch
-from pymoo.core.individual import Individual
+from pymoo.core.individual import Individual, constr_to_cv
 from pymoo.core.population import Population
-from pymoo.util.display import SingleObjectiveDisplay
-from pymoo.util.termination.max_gen import MaximumGenerationTermination
-from pymoo.util.termination.no_termination import NoTermination
+
+from pymoo.termination.max_gen import MaximumGenerationTermination
+
 
 
 # ---------------------------------------------------------------------------------------------------------
@@ -27,7 +30,7 @@ class Optimizer(LocalSearch):
     def __init__(self, method, with_bounds=False, with_constr=False, require_jac=False,
                  use_bounds=True, use_constr=True, estm_gradients=True, disp=False, show_warnings=False, **kwargs):
 
-        super().__init__(display=SingleObjectiveDisplay(), **kwargs)
+        super().__init__(output=SingleObjectiveOutput(), **kwargs)
 
         self.method, self.with_bounds, self.with_constr, self.require_jac = method, with_bounds, with_constr, require_jac
         self.show_warnings = show_warnings
@@ -72,8 +75,9 @@ class Optimizer(LocalSearch):
 
                 if self.with_constr:
                     def fun_constr(x):
-                        g, cv = problem.evaluate(x, return_values_of=["G", "CV"])
-                        return cv[0]
+                        g = problem.evaluate(x, return_values_of=["G"])
+                        cv = constr_to_cv(g)
+                        return cv
 
                     non_lin_constr = NonlinearConstraint(fun_constr, -float("inf"), 0)
 
@@ -112,6 +116,7 @@ class Optimizer(LocalSearch):
         # actually run the optimization
         if not self.show_warnings:
             warnings.simplefilter("ignore")
+
         res = scipy_minimize(fun_obj, x0, **kwargs)
 
         opt = Population.create(Individual(X=res.x))

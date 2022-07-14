@@ -2,19 +2,20 @@ import numpy as np
 
 from pymoo.algorithms.soo.nonconvex.ga import FitnessSurvival
 from pymoo.core.algorithm import Algorithm
+from pymoo.core.individual import Individual
 from pymoo.core.initialization import Initialization
 from pymoo.core.population import Population
 from pymoo.core.repair import NoRepair
 from pymoo.core.replacement import ImprovementReplacement
 from pymoo.docs import parse_doc_string
 from pymoo.operators.crossover.dex import repair_random_init
-from pymoo.operators.mutation.pm import PolynomialMutation
+from pymoo.operators.mutation.pm import PM
 from pymoo.operators.repair.bounds_repair import is_out_of_bounds_by_problem
 from pymoo.operators.repair.to_bound import set_to_bounds_if_outside
 from pymoo.operators.sampling.lhs import LHS
-from pymoo.util.display import SingleObjectiveDisplay
+from pymoo.util.display.column import Column
+from pymoo.util.display.single import SingleObjectiveOutput
 from pymoo.util.misc import norm_eucl_dist
-from pymoo.util.termination.default import SingleObjectiveDefaultTermination
 from pymoo.visualization.fitness_landscape import FitnessLandscape
 from pymoo.visualization.video.callback_video import AnimationCallback
 
@@ -23,17 +24,27 @@ from pymoo.visualization.video.callback_video import AnimationCallback
 # Display
 # =========================================================================================================
 
-class PSODisplay(SingleObjectiveDisplay):
+class PSOFuzzyOutput(SingleObjectiveOutput):
 
-    def _do(self, problem, evaluator, algorithm):
-        super()._do(problem, evaluator, algorithm)
+    def __init__(self):
+        super().__init__()
 
-        if algorithm.adaptive:
-            self.output.append("f", algorithm.f if algorithm.f is not None else "-", width=8)
-            self.output.append("S", algorithm.strategy if algorithm.strategy is not None else "-", width=6)
-            self.output.append("w", algorithm.w, width=6)
-            self.output.append("c1", algorithm.c1, width=8)
-            self.output.append("c2", algorithm.c2, width=8)
+        self.f = Column(name="f", width=8)
+        self.S = Column(name="S", width=6)
+        self.w = Column(name="w", width=6)
+        self.c1 = Column(name="c1", width=8)
+        self.c2 = Column(name="c2", width=8)
+
+        self.columns += [self.f, self.S, self.w, self.c1, self.c2]
+
+    def update(self, algorithm):
+        super().update(algorithm)
+
+        self.f.set(algorithm.f)
+        self.S.set(algorithm.strategy)
+        self.w.set(algorithm.w)
+        self.c1.set(algorithm.c1)
+        self.c2.set(algorithm.c2)
 
 
 # =========================================================================================================
@@ -129,7 +140,7 @@ class PSO(Algorithm):
                  max_velocity_rate=0.20,
                  pertube_best=True,
                  repair=NoRepair(),
-                 display=PSODisplay(),
+                 output=PSOFuzzyOutput(),
                  **kwargs):
         """
 
@@ -171,14 +182,13 @@ class PSO(Algorithm):
 
         """
 
-        super().__init__(display=display, **kwargs)
+        super().__init__(output=output, **kwargs)
 
         self.initialization = Initialization(sampling)
 
         self.pop_size = pop_size
         self.adaptive = adaptive
         self.pertube_best = pertube_best
-        self.default_termination = SingleObjectiveDefaultTermination()
         self.V_max = None
         self.initial_velocity = initial_velocity
         self.max_velocity_rate = max_velocity_rate
@@ -199,13 +209,14 @@ class PSO(Algorithm):
         return self.initialization.do(self.problem, self.pop_size, algorithm=self)
 
     def _initialize_advance(self, infills=None, **kwargs):
-        pbest = self.pop
+        particles = self.pop
 
-        particles = pbest.copy()
         if self.initial_velocity == "random":
             init_V = np.random.random((len(particles), self.problem.n_var)) * self.V_max[None, :]
         elif self.initial_velocity == "zero":
             init_V = np.zeros((len(particles), self.problem.n_var))
+        else:
+            raise Exception("Unknown velocity initialization.")
 
         particles.set("V", init_V)
         self.particles = particles
@@ -230,6 +241,9 @@ class PSO(Algorithm):
                 # find the individuals which are still infeasible
                 m = is_out_of_bounds_by_problem(problem, Xp)
 
+                if len(m) == 0:
+                    break
+
                 # actually execute the differential equation
                 Xp[m], Vp[m] = pso_equation(X[m], P_X[m], S_X[m], V[m], self.V_max, self.w, self.c1, self.c2)
 
@@ -242,17 +256,16 @@ class PSO(Algorithm):
         # try to improve the current best with a pertubation
         if self.pertube_best:
             k = FitnessSurvival().do(problem, pbest, n_survive=1, return_indices=True)[0]
-            eta = int(np.random.uniform(20, 30))
-            mutant = PolynomialMutation(eta).do(problem, pbest[[k]])[0]
+            mut = PM(prob=0.9, eta=np.random.uniform(5, 30), at_least_once=False)
+            mutant = mut(problem, Population(Individual(X=pbest[k].X)))[0]
             off[k].set("X", mutant.X)
 
-        self.repair.do(problem, off)
-
-        self.sbest = sbest.copy()
+        self.repair(problem, off)
+        self.sbest = sbest
 
         return off
 
-    def _advance(self, infills=None):
+    def _advance(self, infills=None, **kwargs):
         assert infills is not None, "This algorithms uses the AskAndTell interface thus 'infills' must to be provided."
 
         # set the new population to be equal to the offsprings
@@ -262,13 +275,13 @@ class PSO(Algorithm):
         has_improved = ImprovementReplacement().do(self.problem, self.pop, infills, return_indices=True)
 
         # set the personal best which have been improved
-        self.pop[has_improved] = infills[has_improved].copy()
+        self.pop[has_improved] = infills[has_improved]
 
         if self.adaptive:
             self._adapt()
 
     def _social_best(self):
-        return Population.create(*[self.opt] * len(self.pop))
+        return Population([self.opt[0]] * len(self.pop))
 
     def _adapt(self):
         pop = self.pop

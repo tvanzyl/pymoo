@@ -1,21 +1,20 @@
-import unittest
-
 import numpy as np
 import pytest
 
 from pymoo.algorithms.moo.nsga3 import NSGA3
-from pymoo.factory import get_reference_directions, DTLZ2
 from pymoo.core.callback import Callback
 from pymoo.optimize import minimize
+from pymoo.problems.many import DTLZ2
 from pymoo.util.function_loader import load_function
+from pymoo.util.ref_dirs import get_reference_directions
 
 
 def assert_fronts_equal(fronts_a, fronts_b):
-    tc = unittest.TestCase('__init__')
-    tc.assertEqual(len(fronts_a), len(fronts_b))
+    assert len(fronts_a) == len(fronts_b)
+
     for a, b in zip(fronts_a, fronts_b):
-        tc.assertEqual(len(a), len(b))
-        tc.assertEqual(set(a), set(b))
+        assert len(a) == len(b)
+        assert set(a) == set(b)
 
 
 def test_fast_non_dominated_sorting():
@@ -82,6 +81,7 @@ class MyCallback(Callback):
         assert_fronts_equal(python_fast_nds, python_tree_based_nds)
 
 
+@pytest.mark.long
 @pytest.mark.parametrize('n_obj', [2, 3, 5, 10])
 def test_equal_during_run(n_obj):
     # create the reference directions to be used for the optimization

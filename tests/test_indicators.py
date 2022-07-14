@@ -1,11 +1,10 @@
-import os
-
 import numpy as np
 
-from pymoo.factory import get_performance_indicator
 from pymoo.indicators.gd import GD
+from pymoo.indicators.gd_plus import GDPlus
 from pymoo.indicators.igd import IGD
-from tests.util import RESOURCES
+from pymoo.indicators.igd_plus import IGDPlus
+from tests.test_util import load_to_test_resource
 
 
 def test_values_of_indicators():
@@ -13,16 +12,17 @@ def test_values_of_indicators():
         (GD, "gd"),
         (IGD, "igd")
     ]
-    folder = os.path.join(RESOURCES, "performance_indicator")
-    pf = np.loadtxt(os.path.join(folder, "performance_indicators.pf"))
+
+    pf = load_to_test_resource("performance_indicator", f"performance_indicators.pf", to="numpy")
 
     for indicator, ext in l:
 
         for i in range(1, 5):
-            F = np.loadtxt(os.path.join(folder, "performance_indicators_%s.f" % i))
 
+            F = load_to_test_resource("performance_indicator", f"performance_indicators_{i}.f", to="numpy")
             val = indicator(pf).do(F)
-            correct = np.loadtxt(os.path.join(folder, "performance_indicators_%s.%s" % (i, ext)))
+
+            correct = load_to_test_resource("performance_indicator", f"performance_indicators_{i}.{ext}", to="numpy")
             assert float(correct) == val
 
 
@@ -187,8 +187,4 @@ def test_performance_indicator_9():
 
 
 def get_indicators(pf):
-    gd = get_performance_indicator("gd", pf)
-    igd = get_performance_indicator("igd", pf)
-    gd_plus = get_performance_indicator("gd+", pf)
-    igd_plus = get_performance_indicator("igd+", pf)
-    return gd, igd, gd_plus, igd_plus
+    return tuple([clazz(pf) for clazz in [GD, IGD, GDPlus, IGDPlus]])
